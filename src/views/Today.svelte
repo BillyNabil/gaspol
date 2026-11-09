@@ -3,9 +3,61 @@
   import { fly, fade, slide, scale } from 'svelte/transition';
   import { quintOut, backOut } from 'svelte/easing';
   import { api } from '../lib/api.js';
-  import { due, sortTasks, nextStep, fmtClock, fmtDur, ms, MODES, modeName } from '../lib/util.js';
+  import { onMount } from 'svelte';
+  import { due, sortTasks, nextStep, fmtClock, fmtDur, ms, MODES, modeName, spent, timeOf } from '../lib/util.js';
 
-  let { st } = $props();
+  let { st, flash } = $props();
+
+  let plan = $state(null);
+  let presetBusy = $state(null);
+  let updating = $state(null);
+
+  onMount(() => {
+    const load = () => api.plan().then((p) => (plan = p)).catch(() => {});
+    load();
+    const t = setInterval(load, 300000);
+    return () => clearInterval(t);
+  });
+
+  async function runPreset(p) {
+    presetBusy = p.id;
+    try {
+      await api.runPreset(p.id);
+      flash?.(`Mode ${p.name} jalan`);
+    } catch (e) {
+      flash?.(String(e));
+    } finally {
+      presetBusy = null;
+    }
+  }
+
+  async function closeDistractors() {
+    const n = await api.closeDistractors();
+    flash?.(n ? `${n} pengganggu ditutup` : 'Nggak ada pengganggu yang kebuka');
+  }
+
+  async function clientUpdate(project) {
+    updating = project;
+    try {
+      const text = await api.clientUpdate(project);
+      await navigator.clipboard.writeText(text);
+      flash?.('Update untuk klien disalin ke clipboard');
+    } catch (e) {
+      flash?.(String(e));
+    } finally {
+      updating = null;
+    }
+  }
+
+  const ratio = $derived(st.stats?.ratio ?? 1);
+  function estLabel(t) {
+    if (!t.est_minutes) return null;
+    const real = Math.round(t.est_minutes * ratio);
+    const left = Math.max(0, real * 60 - spent(t));
+    return ratio > 1.15 || ratio < 0.85
+      ? `estimasi ${fmtDur(t.est_minutes * 60)} → biasanya ${fmtDur(real * 60)} · sisa ±${fmtDur(left)}`
+      : `estimasi ${fmtDur(t.est_minutes * 60)} · sisa ±${fmtDur(left)}`;
+  }
 
   let input = $state('');
   let busy = $state(false);
@@ -85,6 +137,19 @@
     <p class="note" transition:slide={{ duration: ms(200) }}>{note}</p>
   {/if}
 
+  {#if st.settings.presets?.length}
+    <div class="presets">
+      <span class="lbl">Mode kerja</span>
+      {#each st.settings.presets as p (p.id)}
+        <button class="chip-btn" disabled={presetBusy === p.id} onclick={() => runPreset(p)} title={p.open.join(' · ')}>
+          {p.name}<span class="faint num">{p.minutes}m</span>
+        </button>
+      {/each}
+      <span class="grow"></span>
+      <button class="chip-btn ghost" onclick={closeDistractors}>Tutup pengganggu</button>
+    </div>
+  {/if}
+
   <!-- ===== Sekarang ===== -->
   <section class="hero" class:live={s.active} class:distracted={s.active && s.distracted}>
     {#key s.active}
@@ -96,7 +161,8 @@
             <span class="sep">·</span>
             <span class="muted">{modeName(s.mode)}</span>
           </div>
-          <div class="clock display num">{fmtClock(s.remaining)}</div>
+          <div class="clock display num">{fmtClock(s.remaining)}{#if s.flow_ext}<span class="flow">+{Math.round(s.flow_ext / 60)}m flow</span>{/if}</div>
+          {#if s.allow_left > 0}<p class="allow">Izin {s.allow_label || 'jeda'} · {fmtClock(s.allow_left)} lagi</p>{/if}
           <div class="progress"><i style="transform: scaleX({s.planned ? 1 - s.remaining / s.planned : 0})"></i></div>
           <h2>{s.task_title}</h2>
           {#if s.step}<p class="step"><span>Langkah</span>{s.step}</p>{/if}
@@ -152,6 +218,22 @@
     {/key}
   </section>
 
+  {#if plan && !s.active && (plan.events?.length || plan.free_text)}
+    <section class="plan" in:fly={{ y: 8, duration: ms(320) }}>
+      <div class="plan-head">
+        <span>Hari ini</span>
+        {#if plan.free_text}<span class="faint">kosong {plan.free_text}</span>{/if}
+      </div>
+      {#if plan.events?.length}
+        <ul class="events">
+          {#each plan.events.slice(0, 4) as e}
+            <li><span class="num faint">{e.all_day ? 'seharian' : timeOf(e.start)}</span>{e.title}</li>
+          {/each}
+        </ul>
+      {/if}
+    </section>
+  {/if}
+
   <!-- ===== Daftar ===== -->
   {#if open.length}
     <div class="list-head">
@@ -185,7 +267,7 @@
               {#if t.snoozes}<span class="snz">ditunda {t.snoozes}×</span>{/if}
             </div>
           </div>
-          {#if t.focus_secs >= 60}<span class="spent num">{fmtDur(t.focus_secs)}</span>{/if}
+          {#if spent(t) >= 60}<span class="spent num" title="{fmtDur(t.focus_secs)} sesi · {fmtDur(t.auto_secs ?? 0)} otomatis">{fmtDur(spent(t))}</span>{/if}
           {#if d}<span class="chip {d.tone}">{d.label}</span>{/if}
         </div>
 
@@ -205,6 +287,7 @@
                 </li>
               {/each}
             </ol>
+            {#if estLabel(t)}<p class="est">{estLabel(t)}</p>{/if}
             <div class="edit">
               <input
                 class="field"
@@ -218,11 +301,40 @@
                 onchange={(e) => saveField(t, { deadline: e.currentTarget.value || null })}
               />
             </div>
+            <div class="edit three">
+              <input
+                class="field"
+                placeholder="Project / klien"
+                value={t.project ?? ''}
+                onchange={(e) => saveField(t, { project: e.currentTarget.value.trim() || null })}
+              />
+              <input
+                class="field num"
+                type="number"
+                min="0"
+                placeholder="Estimasi (menit)"
+                value={t.est_minutes ?? ''}
+                onchange={(e) => saveField(t, { est_minutes: Number(e.currentTarget.value) || null })}
+              />
+              <input
+                class="field"
+                placeholder="App sah: exe:blender, figma"
+                title="Kerja di luar app ini saat sesi → ditegur pelan"
+                value={(t.allowed ?? []).join(', ')}
+                onchange={(e) => saveField(t, { allowed: e.currentTarget.value.split(',').map((x) => x.trim()).filter(Boolean) })}
+              />
+            </div>
             <div class="row actions">
               <button class="btn sm" disabled={regenId === t.id} onclick={() => regen(t.id)}>
                 {regenId === t.id ? 'Mikir…' : 'Pecah lagi (AI)'}
               </button>
               <button class="btn sm primary" onclick={() => api.start(t.id, minutes, mode)}>Fokus {minutes}m</button>
+              {#if t.project}
+                <button class="btn sm" disabled={updating === t.project} onclick={() => clientUpdate(t.project)}>
+                  {updating === t.project ? 'Nulis…' : 'Update klien'}
+                </button>
+              {/if}
+              {#if t.template}<span class="chip">{t.template}</span>{/if}
               <span class="grow"></span>
               <button class="btn sm ghost danger" onclick={() => api.remove(t.id)}>Hapus</button>
             </div>
@@ -247,7 +359,7 @@
                 >
               </button>
               <div class="meta"><div class="title">{t.title}</div></div>
-              {#if t.focus_secs >= 60}<span class="spent num">{fmtDur(t.focus_secs)}</span>{/if}
+              {#if spent(t) >= 60}<span class="spent num">{fmtDur(spent(t))}</span>{/if}
             </div>
           </li>
         {/each}
@@ -257,6 +369,95 @@
 </div>
 
 <style>
+  .presets {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 12px;
+  }
+  .presets .lbl {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--faint);
+    margin-right: 4px;
+  }
+  .chip-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 28px;
+    padding: 0 11px;
+    border-radius: 999px;
+    font-size: 12.5px;
+    font-weight: 600;
+    background: var(--surface-2);
+    border: 1px solid var(--line);
+    color: var(--text);
+    transition:
+      background-color 0.18s var(--ease),
+      transform 0.18s var(--spring);
+  }
+  .chip-btn:hover:not(:disabled) {
+    background: var(--surface-3);
+  }
+  .chip-btn:active {
+    transform: scale(0.96);
+  }
+  .chip-btn.ghost {
+    background: transparent;
+    color: var(--muted);
+  }
+  .flow {
+    margin-left: 10px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--accent);
+    vertical-align: middle;
+  }
+  .allow {
+    margin: 4px 0 0;
+    font-size: 12.5px;
+    color: var(--warn);
+  }
+  .plan {
+    margin: -10px 0 24px;
+    padding: 12px 16px;
+    border-radius: var(--r);
+    background: var(--surface);
+    border: 1px solid var(--line);
+  }
+  .plan-head {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--muted);
+  }
+  .events {
+    list-style: none;
+    margin: 8px 0 0;
+    padding: 0;
+    display: grid;
+    gap: 4px;
+    font-size: 13px;
+  }
+  .events li {
+    display: flex;
+    gap: 10px;
+  }
+  .events .num {
+    width: 54px;
+  }
+  .est {
+    margin: 0 0 8px;
+    font-size: 12px;
+    color: var(--muted);
+  }
+  .edit.three {
+    grid-template-columns: 1fr 140px 1.3fr;
+    margin-top: 6px;
+  }
   .wrap {
     max-width: 760px;
     margin: 0 auto;

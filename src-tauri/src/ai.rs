@@ -1,7 +1,7 @@
 //! Satu kalimat → task + langkah kecil. Claude API, server lokal (OpenAI-compatible),
 //! atau parser bawaan kalau AI mati / gagal.
 
-use crate::store::Settings;
+use crate::store::{Settings, Template};
 use chrono::{Datelike, Duration, Local, NaiveDate};
 use serde_json::{json, Value};
 
@@ -35,11 +35,80 @@ Aturan deadline: nama hari (jumat, senin, dst) = hari itu yang terdekat mulai ha
 }
 
 pub async fn draft(settings: &Settings, key: Option<String>, text: &str) -> Result<Draft, String> {
-    let raw = complete(settings, key, &system_prompt(), text).await?;
-    parse_draft(&raw).ok_or_else(|| "balasan AI tidak bisa dibaca".to_string())
+    draft_with(settings, key, text, None).await
+}
+
+pub async fn draft_with(settings: &Settings, key: Option<String>, text: &str, tpl: Option<&Template>) -> Result<Draft, String> {
+    let mut system = system_prompt();
+    if let Some(t) = tpl {
+        system += &format!(
+            "\n\nTugas ini jenis \"{}\". Pakai kerangka langkah berikut sebagai acuan (sesuaikan dengan isi kalimat, 4-6 langkah): {}",
+            t.name,
+            t.steps.join(" -> ")
+        );
+    }
+    let raw = complete(settings, key, &system, text).await?;
+    parse_draft(&raw, 6).ok_or_else(|| "balasan AI tidak bisa dibaca".to_string())
+}
+
+/// Screenshot chat/brief klien -> satu tugas berisi checklist revisi (#12).
+pub async fn draft_image(settings: &Settings, key: Option<String>, b64: &str, mime: &str, note: &str) -> Result<Draft, String> {
+    let system = format!(
+        "{}\n\nKali ini user mengirim GAMBAR (screenshot chat klien/dosen, brief, atau catatan revisi). Ubah isinya jadi SATU tugas: title = ringkasan pekerjaannya, steps = checklist revisi/permintaan satu per satu sesuai gambar (boleh sampai 12 langkah, urut seperti di gambar). Deadline hanya kalau disebut di gambar atau catatan user.",
+        system_prompt()
+    );
+    let note = if note.trim().is_empty() { "Ubah gambar ini jadi tugas + checklist." } else { note };
+    let raw = complete_inner(settings, key, &system, Content::Image { text: note, b64, mime }).await?;
+    parse_draft(&raw, 12).ok_or_else(|| "balasan AI tidak bisa dibaca".to_string())
+}
+
+/// Template yang kata kuncinya muncul di kalimat (#17).
+pub fn find_template<'a>(templates: &'a [Template], text: &str) -> Option<&'a Template> {
+    let words: Vec<String> = text
+        .to_lowercase()
+        .split(|c: char| !c.is_alphanumeric())
+        .filter(|w| !w.is_empty())
+        .map(String::from)
+        .collect();
+    templates
+        .iter()
+        .map(|t| (t, t.keywords.iter().filter(|k| words.contains(&k.trim().to_lowercase())).count()))
+        .filter(|(_, n)| *n > 0)
+        .max_by_key(|(_, n)| *n)
+        .map(|(t, _)| t)
 }
 
 pub async fn complete(settings: &Settings, key: Option<String>, system: &str, user: &str) -> Result<String, String> {
+    complete_inner(settings, key, system, Content::Text(user)).await
+}
+
+enum Content<'a> {
+    Text(&'a str),
+    Image { text: &'a str, b64: &'a str, mime: &'a str },
+}
+
+impl Content<'_> {
+    fn anthropic(&self) -> Value {
+        match self {
+            Content::Text(t) => json!(t),
+            Content::Image { text, b64, mime } => json!([
+                { "type": "image", "source": { "type": "base64", "media_type": mime, "data": b64 } },
+                { "type": "text", "text": text },
+            ]),
+        }
+    }
+    fn openai(&self) -> Value {
+        match self {
+            Content::Text(t) => json!(t),
+            Content::Image { text, b64, mime } => json!([
+                { "type": "text", "text": text },
+                { "type": "image_url", "image_url": { "url": format!("data:{mime};base64,{b64}") } },
+            ]),
+        }
+    }
+}
+
+async fn complete_inner(settings: &Settings, key: Option<String>, system: &str, user: Content<'_>) -> Result<String, String> {
     match settings.ai_provider.as_str() {
         "claude" => {
             let key = key.ok_or("API key Claude belum diisi")?;
@@ -113,12 +182,12 @@ async fn read_json(res: reqwest::Response) -> Result<Value, String> {
     Ok(v)
 }
 
-async fn anthropic(base: &str, key: &str, model: &str, bearer: bool, system: &str, user: &str) -> Result<String, String> {
+async fn anthropic(base: &str, key: &str, model: &str, bearer: bool, system: &str, user: Content<'_>) -> Result<String, String> {
     let body = json!({
         "model": model,
-        "max_tokens": 800,
+        "max_tokens": 1500,
         "system": system,
-        "messages": [{ "role": "user", "content": user }],
+        "messages": [{ "role": "user", "content": user.anthropic() }],
     });
     let mut req = client()?
         .post(anthropic_url(base))
@@ -140,7 +209,7 @@ async fn anthropic(base: &str, key: &str, model: &str, bearer: bool, system: &st
     Ok(text)
 }
 
-async fn openai(base: &str, model: &str, key: Option<String>, system: &str, user: &str) -> Result<String, String> {
+async fn openai(base: &str, model: &str, key: Option<String>, system: &str, user: Content<'_>) -> Result<String, String> {
     let base = openai_base(base);
     let model = if model.trim().is_empty() {
         list_models(base, key.clone())
@@ -158,7 +227,7 @@ async fn openai(base: &str, model: &str, key: Option<String>, system: &str, user
         "stream": false,
         "messages": [
             { "role": "system", "content": system },
-            { "role": "user", "content": user },
+            { "role": "user", "content": user.openai() },
         ],
     });
     let mut req = client()?.post(format!("{base}/chat/completions")).json(&body);
@@ -170,6 +239,38 @@ async fn openai(base: &str, model: &str, key: Option<String>, system: &str, user
         .as_str()
         .map(String::from)
         .ok_or_else(|| "server tidak mengembalikan teks".into())
+}
+
+/// Suara -> teks lewat endpoint OpenAI-compatible `/audio/transcriptions` (#13).
+pub async fn transcribe(settings: &Settings, key: Option<String>, audio: Vec<u8>, mime: &str) -> Result<String, String> {
+    let base = if !settings.stt_base_url.trim().is_empty() {
+        settings.stt_base_url.trim().to_string()
+    } else if settings.ai_provider == "custom" && settings.custom_format == "openai" {
+        settings.custom_base_url.trim().to_string()
+    } else {
+        return Err("Isi server transkripsi suara di Pengaturan -> AI".into());
+    };
+    let ext = if mime.contains("ogg") { "ogg" } else if mime.contains("wav") { "wav" } else if mime.contains("mp4") { "m4a" } else { "webm" };
+    let part = reqwest::multipart::Part::bytes(audio)
+        .file_name(format!("voice.{ext}"))
+        .mime_str(mime.split(';').next().unwrap_or("audio/webm"))
+        .map_err(|e| e.to_string())?;
+    let model = if settings.stt_model.trim().is_empty() { "whisper-1".to_string() } else { settings.stt_model.trim().to_string() };
+    let form = reqwest::multipart::Form::new()
+        .part("file", part)
+        .text("model", model)
+        .text("language", "id")
+        .text("response_format", "json");
+    let mut req = client()?.post(format!("{}/audio/transcriptions", openai_base(&base))).multipart(form);
+    if let Some(k) = key {
+        req = req.bearer_auth(k);
+    }
+    let v = read_json(req.send().await.map_err(net_err)?).await?;
+    v["text"]
+        .as_str()
+        .map(|t| t.trim().to_string())
+        .filter(|t| !t.is_empty())
+        .ok_or_else(|| "tidak ada suara yang terbaca".into())
 }
 
 pub async fn list_models(base: &str, key: Option<String>) -> Result<Vec<String>, String> {
@@ -188,7 +289,7 @@ pub async fn list_models(base: &str, key: Option<String>) -> Result<Vec<String>,
         .collect())
 }
 
-fn parse_draft(raw: &str) -> Option<Draft> {
+fn parse_draft(raw: &str, max_steps: usize) -> Option<Draft> {
     let text = match raw.find("</think>") {
         Some(i) => &raw[i + 8..],
         None => raw,
@@ -219,7 +320,7 @@ fn parse_draft(raw: &str) -> Option<Draft> {
             a.iter()
                 .filter_map(|s| s.as_str().map(|s| s.trim().to_string()))
                 .filter(|s| !s.is_empty())
-                .take(6)
+                .take(max_steps)
                 .collect()
         })
         .unwrap_or_default();
@@ -280,7 +381,43 @@ fn cap(s: &str) -> String {
     }
 }
 
+/// Teks banyak baris (mis. daftar revisi yang di-paste) -> baris pertama judul, sisanya langkah.
+fn multiline(text: &str) -> Option<Draft> {
+    let lines: Vec<String> = text
+        .lines()
+        .map(|l| {
+            l.trim()
+                .trim_start_matches(|c: char| c == '-' || c == '*' || c == '\u{2022}' || c.is_ascii_digit() || c == '.' || c == ')')
+                .trim()
+                .to_string()
+        })
+        .filter(|l| !l.is_empty())
+        .collect();
+    if lines.len() < 3 {
+        return None;
+    }
+    let head = heuristic_line(&lines[0]);
+    Some(Draft { steps: lines[1..].iter().take(15).cloned().collect(), ..head })
+}
+
 pub fn heuristic(text: &str) -> Draft {
+    multiline(text).unwrap_or_else(|| heuristic_line(text))
+}
+
+pub fn heuristic_tpl(text: &str, tpl: Option<&Template>) -> Draft {
+    let mut d = heuristic(text);
+    if let Some(t) = tpl {
+        if text.lines().filter(|l| !l.trim().is_empty()).count() < 3 {
+            d.steps = t.steps.clone();
+        }
+        d.est_minutes = d.est_minutes.or(t.est_minutes);
+    }
+    d
+}
+
+fn heuristic_line(text: &str) -> Draft {
+    let joined = text.split_whitespace().collect::<Vec<_>>().join(" ");
+    let text = joined.as_str();
     let today = Local::now().date_naive();
     let words: Vec<&str> = text.split_whitespace().collect();
     let norm: Vec<String> = words

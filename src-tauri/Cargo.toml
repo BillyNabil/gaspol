@@ -1,6 +1,6 @@
 [package]
 name = "gaspol"
-version = "0.1.0"
+version = "0.2.0"
 description = "Focus copilot untuk Windows"
 edition = "2021"
 
@@ -12,10 +12,15 @@ tauri = { version = "2", features = ["tray-icon"] }
 tauri-plugin-global-shortcut = "2"
 tauri-plugin-autostart = "2"
 tauri-plugin-single-instance = "2"
+tauri-plugin-dialog = "2"
+tauri-plugin-updater = "2"
+tauri-plugin-process = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+base64 = "0.22"
+tokio = { version = "1", features = ["time"] }
 chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }
-reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls", "multipart"] }
 keyring = { version = "3", features = ["windows-native"] }
 windows-sys = { version = "0.59", features = [
   "Win32_Foundation",
@@ -25,6 +30,10 @@ windows-sys = { version = "0.59", features = [
   "Win32_System_SystemInformation",
   "Win32_Graphics_Dwm",
   "Win32_Graphics_Gdi",
+  "Win32_UI_Shell",
+  "Win32_System_DataExchange",
+  "Win32_System_Memory",
+  "Win32_System_Diagnostics_ToolHelp",
 ] }
 
 [profile.release]

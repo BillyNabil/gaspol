@@ -13,11 +13,11 @@
 
 <p align="center">
   <b>Ctrl+Space → satu kalimat → langsung jadi tugas + langkah pertama.</b><br>
-  Lalu Gaspol jaga kamu tetap di jalur: negur kalau kabur ke YouTube, nagih kalau deadline mepet,<br>
-  dan kasih laporan jujur tiap malam. Tanpa input manual, tanpa harus ingat buka app.
+  Lalu Gaspol jaga kamu tetap di jalur: negur kalau kabur ke YouTube, render Blender/AE di background,<br>
+  nagih kalau deadline mepet, dan kasih laporan jujur tiap malam. Tanpa input manual, tanpa harus ingat buka app.
 </p>
 
-<p align="center"><sub>English: a tiny tray app for Windows that turns one-line notes into actionable tasks, watches the active window during focus sessions, nudges you back when you drift to distractions, and reports where your day actually went.</sub></p>
+<p align="center"><sub>English: a tiny tray app for Windows that turns one-line notes (or screenshots, or your voice) into actionable tasks, watches the active window during focus sessions, nudges you back when you drift, queues Blender / After Effects renders, and reports where your day — and your billable hours — actually went.</sub></p>
 
 <br>
 
@@ -33,42 +33,79 @@ Kebanyakan app produktivitas mati karena dua hal: **harus diisi manual** dan **l
 
 | Masalah klasik | Cara Gaspol |
 | --- | --- |
-| Ribet input tugas | Satu kalimat santai (`render teaser klien A sebelum jumat`) → AI pecah jadi tugas, deadline, project, dan langkah pertama. |
-| Lupa buka app | Nyala sendiri saat Windows start, tinggal di tray. Kamu nggak perlu ingat apa-apa. |
-| Susah mulai | Selalu ada **satu** tugas paling mendesak dengan langkah pertama yang bisa dimulai < 2 menit. |
-| Gampang ke-distract | Pantau jendela aktif. Kabur ke YouTube/Discord/TikTok → island di atas layar langsung negur. |
-| Nunda sampai mepet | Deadline ≤ besok tapi belum disentuh → ditagih, lengkap dengan langkah pertamanya. Tiap "Nanti" dihitung. |
-| Nggak tahu waktu habis ke mana | Pencatat waktu otomatis per app + laporan harian jam 22:00. |
+| Ribet input tugas | Satu kalimat, screenshot chat klien, teks yang diblok, atau suara → tugas + deadline + project + langkah. |
+| Lupa buka app | Nyala sendiri saat Windows start, tinggal di tray. Rencana pagi muncul sendiri. |
+| Susah mulai | Selalu ada **satu** tugas paling mendesak dengan langkah pertama < 2 menit. Mode Kerja buka semua app-nya sekali klik. |
+| Gampang ke-distract | Pantau jendela aktif. Kabur ke YouTube → island nanya "berapa menit?", lewat batas → ditegur. Tutorial Blender nggak dihitung. |
+| Kerjaan berulang | Antrian render Blender & After Effects di background, hasil export dirapikan otomatis. |
+| Nunda sampai mepet | Estimasi dikoreksi pakai kebiasaanmu meleset → ditagih lebih awal kalau waktunya nggak cukup. |
+| Nggak tahu waktu habis ke mana | Waktu per app, peta jam produktif mingguan, jam per klien → langsung jadi invoice. |
 
 ## Fitur
 
-### ⚡ Tangkap cepat — `Ctrl+Space` dari mana saja
+### ⚡ Tangkap apa pun — `Ctrl+Space` dari mana saja
 
 <img src="docs/capture.png" alt="Capture bar" width="620">
 
-Spotlight-style. Ketik, `Enter`, beres. `Ctrl+Enter` untuk langsung mulai sesi fokus. Parser bawaan paham bahasa sehari-hari (`besok`, `lusa`, `sebelum jumat`, `20/11`, `klien X`), dan kalau AI aktif langkah-langkahnya jadi spesifik.
+- **Kalimat santai** — parser bawaan paham `besok`, `lusa`, `sebelum jumat`, `20/11`, `klien X`.
+- **Screenshot** — `Ctrl+V` gambar chat klien/dosen → AI ubah jadi satu tugas berisi checklist revisi.
+- **Teks yang diblok** — blok teks di app mana pun, tekan `Ctrl+Shift+Space`.
+- **Daftar per baris** — tempel list revisi → baris pertama jadi judul, sisanya langkah.
+- **Suara** — klik mic, ngomong, Whisper (Groq / OpenAI / lokal) menulis tugasnya.
+- **Template** — kalimat berisi `teaser`, `map roblox`, `bug`, `skripsi`, … pakai kerangka langkah milikmu.
+- **Dari HP** — kirim pesan ke bot Telegram pribadimu → masuk ke daftar tugas.
 
-### 🏝️ HUD "island" yang berubah bentuk
+### 🏝️ Island yang berubah bentuk
 
-<img src="docs/hud.png" alt="HUD states" width="820">
+<img src="docs/hud.png" alt="HUD: pil, teguran, penagih, ringkasan" width="820">
+<img src="docs/hud2.png" alt="HUD: pasang niat, rencana pagi, render, istirahat" width="820">
 
-Pil timer kecil di atas layar selama sesi fokus (click-through, nggak menghalangi). Begitu kamu kabur ke pengganggu, pil itu membesar jadi teguran dengan animasi spring. Bentuk yang sama dipakai untuk penagih deadline, ringkasan sesi, dan laporan harian.
+Pil timer kecil di atas layar (click-through, bisa pilih monitor). Bentuk yang sama membesar jadi teguran, **pasang niat** ("2 / 5 / 10 menit?"), penagih deadline, **rencana pagi** dengan jam kosong dari kalender, progres & selesai render, pengingat istirahat, dan laporan malam.
 
-### 🎯 Sesi fokus dengan 3 tingkat kegalakan
+### 🎯 Fokus yang pintar
 
 <img src="docs/focus.png" alt="Sesi fokus berjalan" width="820">
 
-| Mode | Perilaku |
+| | |
 | --- | --- |
-| **Pasif** | Cuma mencatat diam-diam. |
-| **Negur** | Island muncul setelah 4 detik di pengganggu; ditegur ulang tiap 90 detik kalau masih betah. Tombol **Balik kerja** langsung fokus ke jendela kerja terakhir. |
-| **Galak** | Jendela pengganggu langsung di-minimize. |
+| **3 tingkat kegalakan** | Pasif (cuma catat) · Negur (island muncul) · Galak (jendela pengganggu di-minimize, opsional **blokir situs** lewat file hosts). |
+| **Pasang niat** | Buka pengganggu → pilih mau berapa menit. Habis waktunya baru ditegur. |
+| **Paham konteks** | Judul tab berisi `tutorial`, `docs`, `blender`, atau kata dari tugasmu tidak dihitung ngelantur. |
+| **App sah per tugas** | Isi `exe:afterfx, figma` di tugas → kerja di app lain ditegur pelan. |
+| **Lindungi flow** | Lagi asik saat waktu habis → +15 menit diam-diam, tanpa interupsi. |
+| **Istirahat** | 2 jam aktif nonstop → diingatkan minum & peregangan. |
+| **Mode Kerja** | Satu klik: buka app/folder/URL, tutup Discord & kawan-kawan, putar musik fokus, mulai sesi. |
+| **Catat otomatis** | Tanpa sesi pun, jendela `Skripsi_bab3.docx` tercatat ke tugas "Revisi skripsi". |
 
-### 📊 Laporan harian yang jujur
+### 🎬 Antrian render Blender & After Effects
+
+<img src="docs/render.png" alt="Antrian render" width="820">
+
+Seret `.blend` / `.aep` ke jendela → dirender satu per satu lewat `blender -b` dan `aerender` dengan progres per frame dan perkiraan sisa waktu. Island mengabari saat selesai (plus Telegram), dan PC bisa **sleep / mati** begitu antrian habis. Render di luar Gaspol (aerender, Blender Render, ffmpeg) juga terdeteksi → ditawari istirahat tanpa dihitung kabur.
+
+**Rapikan export**: video/audio baru di folder yang dipantau dipindah ke `<root>\<project>\2026-11-09_nama_v03.mp4` — versi naik otomatis.
+
+### 📊 Laporan harian, mingguan, dan klien
 
 <img src="docs/report.png" alt="Laporan harian" width="820">
+<img src="docs/week.png" alt="Laporan mingguan" width="820">
+<img src="docs/clients.png" alt="Rekap klien" width="820">
 
-Total fokus vs ngelantur, waktu per app (pengganggu ditandai oranye), riwayat sesi, dan tugas yang paling sering kamu tunda. Muncul otomatis jam 22:00, bisa geser ke hari-hari sebelumnya.
+- **Hari**: fokus vs ngelantur, waktu per app, sesi, commit, tugas paling sering ditunda.
+- **Minggu**: bar per hari, peta jam produktif 7×24, **jam emasmu**, perbandingan dengan minggu lalu.
+- **Klien**: jam per project × rate → total bisa ditagih, **invoice HTML** siap Ctrl+P → PDF, export CSV, dan **update progres** yang ditulis AI untuk dikirim ke klien.
+- **Estimasi yang belajar**: Gaspol mengukur kamu biasanya meleset berapa kali lipat dan mengoreksi sisa waktu tiap tugas.
+- **Level & streak**: XP dari menit fokus nyata, streak hari dengan ≥ 25 menit fokus.
+- **Akuntabilitas**: ringkasan malam dikirim ke webhook Discord/Slack temanmu (opsional).
+
+### 🔌 Integrasi
+
+| | |
+| --- | --- |
+| **Git** | Commit baru → tugas di project yang sama tersentuh, langkah yang mirip pesan commit dicentang. |
+| **Kalender** | Baca feed iCal rahasia Google Calendar untuk jam kosong; ekspor `gaspol.ics` (deadline + sesi) untuk diimpor balik. |
+| **Telegram** | Bot pribadi (di-pair dengan kode): kirim tugas, `/hari`, `/fokus`, `/stop`, `/laporan`; pengingat & render selesai dikirim ke HP. |
+| **Update otomatis** | Versi baru dicek saat dashboard dibuka, dipasang dengan satu klik (installer ditandatangani). |
 
 ### 🧠 Otak AI pilihan kamu
 
@@ -76,12 +113,12 @@ Total fokus vs ngelantur, waktu per app (pengganggu ditandai oranye), riwayat se
 
 | Provider | Catatan |
 | --- | --- |
-| **Tanpa AI** | Parser bawaan (tanggal, hari, klien). Tetap jalan offline. |
-| **Claude API** | Default `claude-haiku-5-5` — cepat dan murah, nggak makan VRAM. |
-| **Lokal** | Server OpenAI-compatible: LM Studio (`:1234/v1`) atau Ollama (`:11434/v1`). Tombol **Cari model** baca daftar model dari server. |
+| **Tanpa AI** | Parser bawaan + template. Tetap jalan offline. |
+| **Claude API** | Default `claude-haiku-5-5` — cepat, murah, bisa baca screenshot. |
+| **Lokal** | Server OpenAI-compatible: LM Studio (`:1234/v1`) atau Ollama (`:11434/v1`). |
 | **Custom** | Provider apa pun, format **OpenAI-compatible** (OpenRouter, DeepSeek, Groq, z.ai, LiteLLM, vLLM…) atau **Anthropic-compatible**. |
 
-API key disimpan di **Windows Credential Manager**, bukan file teks. Output `<think>` dari model reasoning otomatis dibuang.
+API key & token disimpan di **Windows Credential Manager**, bukan file teks.
 
 ## Ringan
 
@@ -89,7 +126,7 @@ Diukur di Ryzen 7 5700X, Windows 11, mode tray:
 
 | | |
 | --- | --- |
-| Installer | **2,4 MB** (NSIS, install per-user, tanpa admin) |
+| Installer | **~2,5 MB** (NSIS, install per-user, tanpa admin) |
 | Proses inti (Rust) | **~8 MB** RAM |
 | WebView2 | **~166 MB** private (dashboard dihancurkan saat ditutup; HUD + capture berbagi satu renderer) |
 | CPU saat idle | **~0%** (polling jendela aktif 1×/detik) |
@@ -97,8 +134,8 @@ Diukur di Ryzen 7 5700X, Windows 11, mode tray:
 ## Install
 
 1. Download `Gaspol_x.y.z_x64-setup.exe` dari [**Releases**](https://github.com/BillyNabil/gaspol/releases/latest).
-2. Jalankan. Gaspol ter-install di `%LOCALAPPDATA%\Gaspol` dan otomatis nyala tiap Windows start.
-3. Tekan `Ctrl+Space`, ketik tugas pertamamu.
+2. Jalankan. Kalau muncul SmartScreen: **More info → Run anyway**. Gaspol ter-install di `%LOCALAPPDATA%\Gaspol` dan otomatis nyala tiap Windows start.
+3. Tekan `Ctrl+Space`, ketik tugas pertamamu. Versi berikutnya datang lewat update otomatis.
 
 > Butuh WebView2 Runtime — sudah bawaan Windows 11 dan sebagian besar Windows 10.
 
@@ -107,13 +144,15 @@ Diukur di Ryzen 7 5700X, Windows 11, mode tray:
 ```mermaid
 flowchart LR
     subgraph Rust["Backend Rust (Tauri 2)"]
-        T["Tracker 1 dtk<br/>GetForegroundWindow<br/>+ nama exe + idle"] --> C{"Pengganggu?"}
-        C -- ya --> S["Sesi fokus<br/>streak ≥ toleransi"]
-        C -- tidak --> L["Log harian<br/>detik per app"]
-        S -->|Negur| H
-        S -->|Galak| M["ShowWindow<br/>SW_MINIMIZE"]
-        R["Cek deadline<br/>& laporan 1×/menit"] --> H
-        AI["ai.rs<br/>Claude · Lokal · Custom<br/>· parser bawaan"]
+        T["Tracker 1 dtk<br/>jendela aktif + exe + idle"] --> C{"Pengganggu?<br/>(konteks, izin)"}
+        C -- ya --> S["Sesi fokus"]
+        C -- tidak --> L["Log harian<br/>per app · per jam · per tugas"]
+        S -->|Negur / niat| H
+        S -->|Galak| M["minimize + hosts"]
+        R["Antrian render<br/>blender -b · aerender"] --> H
+        X["Pengingat · rencana pagi<br/>laporan · istirahat"] --> H
+        AI["ai.rs<br/>teks · gambar · suara"]
+        G["Git · iCal · Telegram<br/>webhook"]
     end
     subgraph UI["WebView2 + Svelte 5"]
         H["HUD island"]
@@ -122,16 +161,17 @@ flowchart LR
     end
     L --> J[("JSON lokal<br/>%APPDATA%")]
     AI --> J
+    G --> J
 ```
 
-- **Deteksi pengganggu**: pola `exe:discord` dicocokkan ke nama proses, pola biasa (`youtube`) dicocokkan ke judul tab browser — jadi buka docs `discord.js` di VS Code nggak dihitung. Daftar bisa diedit di Pengaturan.
-- **Idle**: > 3 menit tanpa input dianggap tidak di depan laptop, kecuali sedang di pengganggu (nonton YouTube tanpa menyentuh mouse tetap dihitung).
+- **Deteksi pengganggu**: pola `exe:discord` dicocokkan ke nama proses, pola biasa (`youtube`) ke judul tab browser — jadi buka docs `discord.js` di VS Code nggak dihitung. Daftar bisa diedit di Pengaturan.
+- **Idle**: > 3 menit tanpa input dianggap tidak di depan laptop, kecuali sedang di pengganggu.
 
 ## Privasi
 
-- Semua data (`tasks.json`, `settings.json`, `days/*.json`) tersimpan lokal di `%APPDATA%\dev.gaspol.desktop`.
-- Judul jendela hanya dibaca dan diklasifikasi di laptopmu; yang disimpan cuma **nama app + durasi**, bukan judulnya.
-- Yang dikirim keluar hanya kalimat tugas yang kamu ketik, dan hanya ke provider AI yang kamu pilih.
+- Semua data (`tasks.json`, `settings.json`, `days/*.json`, `render_queue.json`) tersimpan lokal di `%APPDATA%\dev.gaspol.desktop`.
+- Judul jendela hanya dibaca dan diklasifikasi di laptopmu; yang disimpan cuma **nama app + durasi**.
+- Data hanya keluar ke layanan yang **kamu isi sendiri**: provider AI (kalimat/screenshot/suara yang kamu kirim), webhook (ringkasan harian), Telegram (tugas & notifikasi), feed kalender (dibaca saja).
 
 ## Develop
 
@@ -142,6 +182,8 @@ npm install
 npx tauri dev        # jalankan app dengan hot reload
 npx tauri build      # installer NSIS di src-tauri/target/release/bundle/nsis
 ```
+
+Build release butuh kunci updater (`TAURI_SIGNING_PRIVATE_KEY`); buat sendiri dengan `npx tauri signer generate` dan ganti `pubkey` di `tauri.conf.json` kalau kamu fork.
 
 > **Path terlalu panjang?** Kalau `link.exe` gagal dengan `LNK1104`, pindahkan output build ke path pendek lewat `src-tauri/.cargo/config.toml`:
 > ```toml
@@ -161,30 +203,33 @@ npm run dev
 | --- | --- |
 | `localhost:1420/?demo=idle` | Dashboard |
 | `localhost:1420/?demo=live` | Sesi fokus berjalan |
-| `localhost:1420/?demo=idle&r#report` | Laporan |
+| `localhost:1420/?demo=idle#render` | Antrian render |
+| `localhost:1420/?demo=idle&r#report` | Laporan (Hari / Minggu / Klien) |
 | `localhost:1420/?win=capture&demo=done` | Capture bar + hasil |
-| `localhost:1420/?win=hud&demo=nudge` | HUD (`pill`, `nudge`, `remind`, `done`, `report`) |
+| `localhost:1420/?win=hud&demo=nudge` | HUD (`pill`, `nudge`, `intent`, `remind`, `plan`, `render`, `render_done`, `renderpill`, `break`, `offtask`, `power`, `done`, `report`) |
 
 ### Struktur
 
 ```
 src-tauri/src/
-├── main.rs      # window, tray, hotkey, autostart, commands
-├── tracker.rs   # loop 1 dtk: klasifikasi app, sesi fokus, pengingat, laporan
-├── ai.rs        # Claude / OpenAI-compatible / Anthropic-compatible + parser bawaan
-├── store.rs     # model data + JSON atomic write
-└── win.rs       # Win32: jendela aktif, nama exe, idle, minimize
+├── main.rs        # window, tray, hotkey, autostart, commands
+├── tracker.rs     # loop 1 dtk: klasifikasi, sesi fokus, catat otomatis, pengingat, rencana, laporan
+├── render.rs      # antrian Blender/AE, deteksi render luar, rapikan export
+├── automation.rs  # mode kerja, musik, blokir hosts, Telegram, webhook, iCal, Git
+├── insights.rs    # estimasi, rencana pagi, laporan mingguan, XP, klien & invoice
+├── ai.rs          # Claude / OpenAI- / Anthropic-compatible, gambar, Whisper, parser bawaan
+├── store.rs       # model data + JSON atomic write
+└── win.rs         # Win32: jendela, proses, clipboard, input, shell, transparansi
 src/
-├── views/       # Main · Today · Report · Settings · Capture · Hud
-└── lib/         # api, util, jembatan Tauri, data demo
+├── views/         # Main · Today · Render · Report(+Week, Clients) · Settings · Capture · Hud
+└── lib/           # api, util, jembatan Tauri, data demo
 ```
 
 ## Roadmap
 
-- [ ] **Mode Kerja** — satu klik buka After Effects + folder project + playlist, tutup pengganggu, mulai fokus.
-- [ ] **Antrian render** Blender (`blender -b`) & After Effects (`aerender`) di background, notifikasi saat selesai, rapikan file hasil.
-- [ ] Statistik mingguan & streak.
-- [ ] Posisi HUD per monitor.
+- [ ] Ekspansi event berulang (RRULE) di feed kalender.
+- [ ] Antrian render paralel & preset output.
+- [ ] Sinkron tugas antar-laptop.
 
 ## Lisensi
 

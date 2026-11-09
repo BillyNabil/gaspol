@@ -110,3 +110,190 @@ pub fn ensure_transparent(hwnd: isize) {
         }
     }
 }
+
+// ------------------------------------------------------------------ util tambahan
+
+fn wide(s: &str) -> Vec<u16> {
+    s.encode_utf16().chain(std::iter::once(0)).collect()
+}
+
+/// Buka URL / file / folder / nama app lewat shell Windows (sama seperti Win+R).
+pub fn shell_open(target: &str) -> bool {
+    shell_exec("open", target, "")
+}
+
+/// Jalankan program dengan hak admin (memunculkan dialog UAC).
+pub fn shell_runas(file: &str, params: &str) -> bool {
+    shell_exec("runas", file, params)
+}
+
+fn shell_exec(verb: &str, file: &str, params: &str) -> bool {
+    use windows_sys::Win32::UI::{Shell::ShellExecuteW, WindowsAndMessaging::SW_SHOWNORMAL};
+    let (v, f, p) = (wide(verb), wide(file), wide(params));
+    unsafe {
+        let r = ShellExecuteW(
+            std::ptr::null_mut(),
+            v.as_ptr(),
+            f.as_ptr(),
+            if params.is_empty() { std::ptr::null() } else { p.as_ptr() },
+            std::ptr::null(),
+            SW_SHOWNORMAL,
+        );
+        r as isize > 32
+    }
+}
+
+/// `Command` tanpa jendela konsol yang berkedip.
+pub fn command(program: &str) -> std::process::Command {
+    use std::os::windows::process::CommandExt;
+    let mut c = std::process::Command::new(program);
+    c.creation_flags(0x0800_0000);
+    c
+}
+
+fn tap(vk: u8) {
+    use windows_sys::Win32::UI::Input::KeyboardAndMouse::{keybd_event, KEYEVENTF_KEYUP};
+    unsafe {
+        keybd_event(vk, 0, 0, 0);
+        keybd_event(vk, 0, KEYEVENTF_KEYUP, 0);
+    }
+}
+
+/// Tombol media Play/Pause.
+pub fn media_play_pause() {
+    tap(0xB3);
+}
+
+fn key_down(vk: i32) -> bool {
+    use windows_sys::Win32::UI::Input::KeyboardAndMouse::GetAsyncKeyState;
+    unsafe { (GetAsyncKeyState(vk) as u16 & 0x8000) != 0 }
+}
+
+pub fn clipboard_seq() -> u32 {
+    unsafe { windows_sys::Win32::System::DataExchange::GetClipboardSequenceNumber() }
+}
+
+pub fn clipboard_text() -> Option<String> {
+    use windows_sys::Win32::System::{
+        DataExchange::{CloseClipboard, GetClipboardData, OpenClipboard},
+        Memory::{GlobalLock, GlobalUnlock},
+    };
+    unsafe {
+        if OpenClipboard(std::ptr::null_mut()) == 0 {
+            return None;
+        }
+        let h = GetClipboardData(13); // CF_UNICODETEXT
+        let mut out = None;
+        if !h.is_null() {
+            let p = GlobalLock(h) as *const u16;
+            if !p.is_null() {
+                let mut len = 0usize;
+                while *p.add(len) != 0 && len < 200_000 {
+                    len += 1;
+                }
+                out = Some(String::from_utf16_lossy(std::slice::from_raw_parts(p, len)));
+                GlobalUnlock(h);
+            }
+        }
+        CloseClipboard();
+        out
+    }
+}
+
+/// Salin teks yang sedang diblok di app aktif: tunggu tombol hotkey dilepas, kirim Ctrl+C,
+/// lalu baca clipboard kalau isinya berubah.
+pub fn copy_selection() -> Option<String> {
+    use windows_sys::Win32::UI::Input::KeyboardAndMouse::{keybd_event, KEYEVENTF_KEYUP};
+    let start = std::time::Instant::now();
+    // Shift/Ctrl/Alt/Win/Space masih ditekan → Ctrl+C bisa jadi Ctrl+Shift+C (DevTools).
+    while [0x10, 0x11, 0x12, 0x5B, 0x5C, 0x20].iter().any(|k| key_down(*k)) {
+        if start.elapsed().as_millis() > 1500 {
+            return None;
+        }
+        std::thread::sleep(std::time::Duration::from_millis(15));
+    }
+    let before = clipboard_seq();
+    unsafe {
+        keybd_event(0x11, 0, 0, 0);
+        keybd_event(0x43, 0, 0, 0);
+        keybd_event(0x43, 0, KEYEVENTF_KEYUP, 0);
+        keybd_event(0x11, 0, KEYEVENTF_KEYUP, 0);
+    }
+    for _ in 0..25 {
+        std::thread::sleep(std::time::Duration::from_millis(20));
+        if clipboard_seq() != before {
+            std::thread::sleep(std::time::Duration::from_millis(30));
+            return clipboard_text().filter(|t| !t.trim().is_empty());
+        }
+    }
+    None
+}
+
+pub struct WinInfo {
+    pub hwnd: isize,
+    pub title: String,
+    pub exe: String,
+}
+
+/// Semua jendela top-level yang terlihat dan punya judul.
+pub fn list_windows() -> Vec<WinInfo> {
+    use windows_sys::Win32::{
+        Foundation::{BOOL, LPARAM},
+        UI::WindowsAndMessaging::{EnumWindows, IsWindowVisible},
+    };
+    unsafe extern "system" fn cb(h: HWND, l: LPARAM) -> BOOL {
+        let out = &mut *(l as *mut Vec<WinInfo>);
+        if IsWindowVisible(h) != 0 {
+            let mut buf = [0u16; 512];
+            let n = GetWindowTextW(h, buf.as_mut_ptr(), buf.len() as i32);
+            if n > 0 {
+                let mut pid = 0u32;
+                GetWindowThreadProcessId(h, &mut pid);
+                out.push(WinInfo {
+                    hwnd: h as isize,
+                    title: String::from_utf16_lossy(&buf[..n as usize]),
+                    exe: exe_name(pid).unwrap_or_default(),
+                });
+            }
+        }
+        1
+    }
+    let mut out: Vec<WinInfo> = Vec::new();
+    unsafe {
+        EnumWindows(Some(cb), &mut out as *mut _ as LPARAM);
+    }
+    out
+}
+
+pub fn close_window(hwnd: isize) {
+    use windows_sys::Win32::UI::WindowsAndMessaging::{PostMessageW, WM_CLOSE};
+    unsafe {
+        PostMessageW(hwnd as HWND, WM_CLOSE, 0, 0);
+    }
+}
+
+/// Nama exe (huruf kecil, tanpa .exe) semua proses yang berjalan.
+pub fn processes() -> Vec<String> {
+    use windows_sys::Win32::{
+        Foundation::INVALID_HANDLE_VALUE,
+        System::Diagnostics::ToolHelp::{CreateToolhelp32Snapshot, Process32FirstW, Process32NextW, PROCESSENTRY32W, TH32CS_SNAPPROCESS},
+    };
+    let mut out = Vec::new();
+    unsafe {
+        let snap = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
+        if snap == INVALID_HANDLE_VALUE || snap.is_null() {
+            return out;
+        }
+        let mut e: PROCESSENTRY32W = std::mem::zeroed();
+        e.dwSize = std::mem::size_of::<PROCESSENTRY32W>() as u32;
+        let mut ok = Process32FirstW(snap, &mut e);
+        while ok != 0 {
+            let len = e.szExeFile.iter().position(|c| *c == 0).unwrap_or(e.szExeFile.len());
+            let name = String::from_utf16_lossy(&e.szExeFile[..len]).to_lowercase();
+            out.push(name.strip_suffix(".exe").unwrap_or(&name).to_string());
+            ok = Process32NextW(snap, &mut e);
+        }
+        CloseHandle(snap);
+    }
+    out
+}

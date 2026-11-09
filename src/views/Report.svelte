@@ -3,9 +3,30 @@
   import { fly } from 'svelte/transition';
   import { quintOut } from 'svelte/easing';
   import { api } from '../lib/api.js';
-  import { fmtDur, fmtClock, todayStr, prettyDate, parseYmd, ymd, ms, modeName } from '../lib/util.js';
+  import { fmtDur, todayStr, prettyDate, parseYmd, ymd, ms } from '../lib/util.js';
+  import ReportWeek from './ReportWeek.svelte';
+  import ReportClients from './ReportClients.svelte';
 
-  let { st } = $props();
+  let { st, flash } = $props();
+
+  const VIEWS = [
+    { id: 'day', name: 'Hari' },
+    { id: 'week', name: 'Minggu' },
+    { id: 'clients', name: 'Klien' },
+  ];
+  let view = $state('day');
+  const vIdx = $derived(VIEWS.findIndex((v) => v.id === view));
+  let sharing = $state(false);
+
+  async function share() {
+    sharing = true;
+    try {
+      await api.sendDailyNow();
+      flash?.('Ringkasan dikirim ke Discord/Telegram');
+    } finally {
+      sharing = false;
+    }
+  }
 
   let date = $state(todayStr());
   let day = $state(null);
@@ -47,7 +68,7 @@
   const max = $derived(apps[0]?.secs || 1);
   const total = $derived(day ? Object.values(day.apps).reduce((n, a) => n + a.secs, 0) : 0);
   const distracted = $derived(day ? Object.values(day.apps).filter((a) => a.distracting).reduce((n, a) => n + a.secs, 0) : 0);
-  const focus = $derived(day ? day.sessions.reduce((n, s) => n + s.focus_secs, 0) : 0);
+  const focus = $derived(day ? day.sessions.reduce((n, s) => n + s.focus_secs, 0) + Object.values(day.task_secs ?? {}).reduce((n, v) => n + v, 0) : 0);
   const sessions = $derived(day ? [...day.sessions].reverse() : []);
   const snoozed = $derived(st.tasks.filter((t) => !t.done && t.snoozes > 0).sort((a, b) => b.snoozes - a.snoozes).slice(0, 5));
 
@@ -64,6 +85,23 @@
 </script>
 
 <div class="wrap">
+  <div class="switch-row">
+    <div class="seg">
+      <span class="thumb" style="width: calc((100% - 6px) / 3); transform: translateX({vIdx * 100}%)"></span>
+      {#each VIEWS as v}
+        <button class:on={view === v.id} onclick={() => (view = v.id)}>{v.name}</button>
+      {/each}
+    </div>
+    {#if view === 'day' && (st.settings.webhook_url || st.settings.telegram_chat_id)}
+      <button class="btn sm ghost" disabled={sharing} onclick={share}>Bagikan ringkasan</button>
+    {/if}
+  </div>
+
+  {#if view === 'week'}
+    <ReportWeek />
+  {:else if view === 'clients'}
+    <ReportClients {st} {flash} />
+  {:else}
   <div class="head">
     <button class="nav" aria-label="Hari sebelumnya" onclick={() => shift(-1)}>‹</button>
     <h1 class="display">{prettyDate(date)}</h1>
@@ -133,9 +171,27 @@
       {/if}
     </section>
   </div>
+
+  {#if day?.commits?.length}
+    <section>
+      <h3>Commit hari ini</h3>
+      <ul class="sessions">
+        {#each [...day.commits].reverse().slice(0, 8) as c}
+          <li><span class="time num">{timeOf(c.ts)}</span><span class="what">{c.message}</span><span class="chip">{c.project}</span></li>
+        {/each}
+      </ul>
+    </section>
+  {/if}
+  {/if}
 </div>
 
 <style>
+  .switch-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 18px;
+  }
   .wrap {
     max-width: 760px;
     margin: 0 auto;

@@ -84,3 +84,20 @@ export const MODES = [
 ];
 
 export const modeName = (id) => MODES.find((m) => m.id === id)?.name ?? id;
+
+/** Total waktu di tugas: sesi fokus + pencatatan otomatis. */
+export const spent = (t) => (t?.focus_secs ?? 0) + (t?.auto_secs ?? 0);
+
+export function fmtMoney(v, cur = 'Rp') {
+  return `${cur} ${Math.round(v ?? 0).toLocaleString('id-ID')}`;
+}
+
+export const timeOf = (ts) => new Date(ts * 1000).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+
+export const baseName = (p) => (p ?? '').split(/[\\/]/).pop();
+
+export function addDays(s, n) {
+  const d = parseYmd(s);
+  d.setDate(d.getDate() + n);
+  return ymd(d);
+}
