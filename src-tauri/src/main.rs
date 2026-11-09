@@ -89,12 +89,20 @@ fn place(w: &WebviewWindow, top_ratio: f64, top_px: f64) {
     let _ = w.set_position(PhysicalPosition::new(x, y));
 }
 
+/// Pasang ulang alpha per-piksel tiap kali tampil (lihat `win::ensure_transparent`).
+fn transparent(w: &WebviewWindow) {
+    if let Ok(h) = w.hwnd() {
+        win::ensure_transparent(h.0 as isize);
+    }
+}
+
 pub fn hud_show(app: &AppHandle, interactive: bool) {
     if let Some(w) = app.get_webview_window("hud") {
         let top = lk(&app.state::<Shared>().settings).hud_top.min(400);
         place(&w, 0.0, top as f64);
         let _ = w.set_ignore_cursor_events(!interactive);
         let _ = w.show();
+        transparent(&w);
     }
 }
 
@@ -150,6 +158,7 @@ fn toggle_capture(app: &AppHandle) {
     } else {
         place(&w, 0.2, 0.0);
         let _ = w.show();
+        transparent(&w);
         let _ = w.set_focus();
         let _ = app.emit("capture-open", ());
     }
@@ -632,6 +641,11 @@ fn main() {
             }
             if !std::env::args().any(|a| a == "--hidden") {
                 show_main(&handle, None);
+            }
+            for label in ["capture", "hud"] {
+                if let Some(w) = handle.get_webview_window(label) {
+                    transparent(&w);
+                }
             }
             tracker::spawn(handle.clone());
             Ok(())

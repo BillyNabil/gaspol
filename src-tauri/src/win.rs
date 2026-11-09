@@ -86,3 +86,27 @@ pub fn focus(hwnd: isize) {
         SetForegroundWindow(h);
     }
 }
+
+/// Pastikan jendela tembus pandang per-piksel. Di sebagian build Windows 11
+/// (24H2+) flag `transparent` dari tao tidak terpasang, sehingga area kosong
+/// WebView2 tampil hitam. Blur-behind dengan region kosong mengaktifkan alpha
+/// tanpa efek blur apa pun.
+pub fn ensure_transparent(hwnd: isize) {
+    use windows_sys::Win32::Graphics::{
+        Dwm::{DwmEnableBlurBehindWindow, DWM_BB_BLURREGION, DWM_BB_ENABLE, DWM_BLURBEHIND},
+        Gdi::{CreateRectRgn, DeleteObject},
+    };
+    unsafe {
+        let rgn = CreateRectRgn(0, 0, -1, -1);
+        let bb = DWM_BLURBEHIND {
+            dwFlags: DWM_BB_ENABLE | DWM_BB_BLURREGION,
+            fEnable: 1,
+            hRgnBlur: rgn,
+            fTransitionOnMaximized: 0,
+        };
+        DwmEnableBlurBehindWindow(hwnd as HWND, &bb);
+        if !rgn.is_null() {
+            DeleteObject(rgn);
+        }
+    }
+}
