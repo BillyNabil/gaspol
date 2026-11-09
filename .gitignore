@@ -1,0 +1,13 @@
+node_modules/
+dist/
+*.exe
+*.log
+.DS_Store
+.vscode/
+.playwright-mcp/
+
+# Rust / Tauri
+src-tauri/target/
+src-tauri/gen/schemas/
+# Konfigurasi build lokal (target-dir per mesin)
+src-tauri/.cargo/config.toml

@@ -1,0 +1,66 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 420" width="1280" height="420">
+  <defs>
+    <radialGradient id="glowA" cx="16%" cy="0%" r="70%">
+      <stop offset="0" stop-color="#d4ff3a" stop-opacity="0.20"/>
+      <stop offset="1" stop-color="#d4ff3a" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="glowB" cx="100%" cy="100%" r="60%">
+      <stop offset="0" stop-color="#ff8c3c" stop-opacity="0.16"/>
+      <stop offset="1" stop-color="#ff8c3c" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#17171b"/>
+      <stop offset="1" stop-color="#0b0b0c"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1280" height="420" rx="28" fill="url(#bg)"/>
+  <rect width="1280" height="420" rx="28" fill="url(#glowA)"/>
+  <rect width="1280" height="420" rx="28" fill="url(#glowB)"/>
+  <rect x="0.5" y="0.5" width="1279" height="419" rx="27.5" fill="none" stroke="#ffffff" stroke-opacity="0.07"/>
+
+  <!-- logo -->
+  <g transform="translate(96 118)">
+    <rect width="120" height="120" rx="30" fill="#111113" stroke="#ffffff" stroke-opacity="0.08"/>
+    <g fill="none" stroke="#d4ff3a" stroke-width="11" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M34 36 L56 60 L34 84"/>
+      <path d="M62 36 L84 60 L62 84" stroke-opacity="0.45"/>
+    </g>
+  </g>
+
+  <text x="250" y="170" font-family="Segoe UI Variable Display, Segoe UI, Inter, system-ui, sans-serif" font-size="78" font-weight="700" letter-spacing="-2.5" fill="#ededef">gaspol</text>
+  <g font-family="Segoe UI Variable Text, Segoe UI, Inter, system-ui, sans-serif" font-size="23" fill="#8b8b93">
+    <text x="252" y="224"><tspan fill="#ededef">Focus copilot untuk Windows.</tspan></text>
+    <text x="252" y="256">Nyala sendiri, tahu kamu lagi ngapain,</text>
+    <text x="252" y="288">dan negur kalau kamu kabur.</text>
+  </g>
+
+  <!-- pill HUD -->
+  <g transform="translate(860 132)">
+    <rect width="300" height="50" rx="25" fill="#0d0d0e" stroke="#ffffff" stroke-opacity="0.10"/>
+    <circle cx="26" cy="25" r="5" fill="#d4ff3a"/>
+    <text x="44" y="31" font-family="Segoe UI, Inter, system-ui, sans-serif" font-size="16" fill="#8b8b93">Render teaser 15 detik</text>
+    <text x="276" y="31" text-anchor="end" font-family="Segoe UI, Inter, system-ui, sans-serif" font-size="16" font-weight="600" fill="#ededef">32:14</text>
+  </g>
+  <!-- nudge HUD -->
+  <g transform="translate(830 200)">
+    <rect width="360" height="104" rx="24" fill="#0d0d0e" stroke="#ffa24c" stroke-opacity="0.5"/>
+    <text x="22" y="34" font-family="Segoe UI, Inter, system-ui, sans-serif" font-size="14" font-weight="700" fill="#ffa24c">Hei, ini YouTube.</text>
+    <text x="22" y="60" font-family="Segoe UI, Inter, system-ui, sans-serif" font-size="17" fill="#ededef">Balik ke <tspan font-weight="700">Render teaser 15 detik</tspan></text>
+    <rect x="22" y="72" width="88" height="22" rx="11" fill="#d4ff3a"/>
+    <text x="66" y="87" text-anchor="middle" font-family="Segoe UI, Inter, system-ui, sans-serif" font-size="12" font-weight="700" fill="#0b0b0c">Balik kerja</text>
+    <text x="128" y="87" font-family="Segoe UI, Inter, system-ui, sans-serif" font-size="12" font-weight="600" fill="#8b8b93">Sebentar</text>
+  </g>
+
+  <!-- chips -->
+  <g font-family="Segoe UI, Inter, system-ui, sans-serif" font-size="15" font-weight="600" transform="translate(0 14)">
+    <rect x="252" y="306" width="132" height="34" rx="17" fill="#d4ff3a" fill-opacity="0.12"/>
+    <text x="318" y="328" text-anchor="middle" fill="#d4ff3a">Rust + Tauri 2</text>
+    <rect x="396" y="306" width="104" height="34" rx="17" fill="#ffffff" fill-opacity="0.06"/>
+    <text x="448" y="328" text-anchor="middle" fill="#ededef">Svelte 5</text>
+    <rect x="512" y="306" width="150" height="34" rx="17" fill="#ffffff" fill-opacity="0.06"/>
+    <text x="587" y="328" text-anchor="middle" fill="#ededef">Installer 2,4 MB</text>
+    <rect x="674" y="306" width="104" height="34" rx="17" fill="#ffffff" fill-opacity="0.06"/>
+    <text x="726" y="328" text-anchor="middle" fill="#ededef">100% lokal</text>
+  </g>
+</svg>

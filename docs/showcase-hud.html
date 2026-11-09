@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <title>HUD showcase</title>
+    <style>
+      :root {
+        color-scheme: dark;
+      }
+      body {
+        margin: 0;
+        width: 1040px;
+        padding: 36px 40px 30px;
+        box-sizing: border-box;
+        font-family: 'Segoe UI Variable Text', 'Segoe UI', system-ui, sans-serif;
+        color: #8b8b93;
+        background:
+          radial-gradient(900px 520px at 10% 0%, rgba(212, 255, 58, 0.12), transparent 62%),
+          radial-gradient(800px 520px at 100% 100%, rgba(255, 140, 60, 0.12), transparent 60%),
+          linear-gradient(160deg, #17171b, #0e0e10);
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: 480px 480px;
+        gap: 18px 0;
+      }
+      figure {
+        margin: 0;
+      }
+      iframe {
+        display: block;
+        width: 480px;
+        border: 0;
+        background: transparent;
+      }
+      figcaption {
+        text-align: center;
+        font-size: 13px;
+        font-weight: 600;
+        letter-spacing: 0.02em;
+        margin-top: -4px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="grid">
+      <figure><iframe src="/?win=hud&bare&demo=pill" height="60"></iframe><figcaption>Pil timer selama sesi fokus</figcaption></figure>
+      <figure><iframe src="/?win=hud&bare&demo=nudge" height="150"></iframe><figcaption>Teguran saat kabur ke pengganggu</figcaption></figure>
+      <figure><iframe src="/?win=hud&bare&demo=remind" height="150"></iframe><figcaption>Penagih deadline</figcaption></figure>
+      <figure><iframe src="/?win=hud&bare&demo=done" height="150"></iframe><figcaption>Ringkasan saat sesi tuntas</figcaption></figure>
+    </div>
+  </body>
+</html>
